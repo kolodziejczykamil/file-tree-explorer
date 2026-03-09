@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+
+@layer base {
+  :root[data-theme='dark'] {
+    @apply bg-slate-950 text-slate-100 antialiased;
+  }
+
+  :root[data-theme='light'] {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+
+  body {
+    @apply m-0 min-h-screen;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+}
