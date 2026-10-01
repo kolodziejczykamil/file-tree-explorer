@@ -1,83 +1,85 @@
 ## FileTree Explorer
 
-Aplikacja React/TypeScript do wizualizacji struktury katalogów dostarczonej jako JSON. Użytkownik wkleja lub wgrywa plik JSON, a aplikacja pokazuje drzewo, wyszukiwanie oraz szczegóły plików i folderów.
+A React and TypeScript app that visualizes a directory structure provided as JSON. You paste or upload a JSON file, and the app shows the tree, a search panel and details of files and folders.
+
+**Live demo:** https://file-tree-explorer-omega.vercel.app
 
 ### Stack
 
-- **Vite + React 18+ + TypeScript (strict)** - bundler i typowanie.
-- **React Router v6** - widoki: `/`, `/tree`, `/tree/*` (splat dla zagnieżdżonych ścieżek).
-- **Tailwind CSS v4** - stylowanie (PostCSS: `@tailwindcss/postcss`).
-- **Prettier** - formatowanie kodu (`.prettierrc`, skrypt `npm run format`).
+- **Vite + React 18+ + TypeScript (strict)**: bundling and typing.
+- **React Router v6**: views `/`, `/tree`, `/tree/*` (splat route for nested paths).
+- **Tailwind CSS v4**: styling (PostCSS: `@tailwindcss/postcss`).
+- **Prettier**: code formatting (`.prettierrc`, `npm run format` script).
 
-### Uruchomienie
+### Getting started
 
 ```bash
 npm install
 npm run dev
 ```
 
-Aplikacja: np. `http://localhost:5173`.
+The app runs at e.g. `http://localhost:5173`.
 
 ---
 
-### Architektura
+### Architecture
 
-#### Routing i widoki
+#### Routing and views
 
-| Ścieżka        | Widok            | Opis |
-|----------------|------------------|------|
-| `/`            | `HomePage`       | Wklejanie/wgrywanie JSON, przykładowe struktury (boksy z podglądem JSON), przyciski PL/EN i dark/light. |
-| `/tree`        | `TreePage`       | Drzewo plików + panel wyszukiwania. Przy braku załadowanego drzewa → przekierowanie na `/`. |
-| `/tree/*`      | `NodeDetailsPage`| Szczegóły węzła (plik lub folder). Ścieżka z URL: `params['*']` (splat RR v6), np. `src/components/Button.tsx`. |
+| Path           | View              | Description |
+|----------------|-------------------|-------------|
+| `/`            | `HomePage`        | Paste or upload JSON, sample structures (cards with a JSON preview), PL/EN and dark/light toggles. |
+| `/tree`        | `TreePage`        | File tree and search panel. Redirects to `/` when no tree is loaded. |
+| `/tree/*`      | `NodeDetailsPage` | Node details (file or folder). Path taken from the URL: `params['*']` (React Router v6 splat), e.g. `src/components/Button.tsx`. |
 
-W nagłówku jest tylko link **Home**; dostęp do drzewa następuje po załadowaniu JSON na stronie głównej.
+The header has only a **Home** link; the tree becomes available after loading JSON on the home page.
 
-#### Stan globalny i persistencja
+#### Global state and persistence
 
-- **TreeProvider** (`tree/TreeContext.tsx`): `root`, `setRoot`, `searchTerm`, `setSearchTerm`, `formatSize`, `findNodeByPath`, `computeFolderSize`, `computeFolderFileCount`. Drzewo i zapytanie wyszukiwania są zapisywane w `localStorage` (`filetree-explorer:tree`, `filetree-explorer:searchTerm`), więc przetrwają odświeżenie.
-- **UiProvider** (`ui/UiContext.tsx`): `theme` (dark/light), `lang` (pl/en), `toggleTheme`, `toggleLang`, `t(key)` - tłumaczenia. Wybór motywu i języka też w `localStorage`.
+- **TreeProvider** (`tree/TreeContext.tsx`): `root`, `setRoot`, `searchTerm`, `setSearchTerm`, `formatSize`, `findNodeByPath`, `computeFolderSize`, `computeFolderFileCount`. The tree and the search query are saved in `localStorage` (`filetree-explorer:tree`, `filetree-explorer:searchTerm`), so they survive a refresh.
+- **UiProvider** (`ui/UiContext.tsx`): `theme` (dark/light), `lang` (pl/en), `toggleTheme`, `toggleLang`, `t(key)` for translations. Theme and language choices are also kept in `localStorage`.
 
-#### Strona główna (HomePage)
+#### Home page (HomePage)
 
-- Textarea na JSON + wgranie pliku; walidacja (`normalizeRoot`, `validateNode`) - root musi być folderem, pliki muszą mieć `size`.
-- Sekcja **Przykładowe struktury**: boksy z tytułem i podglądem fragmentu JSON (pierwsze linie); klik w boks ładuje dany przykład i przenosi na `/tree`.
-- Wszystkie teksty i style zależne od `theme` i `lang` (i18n).
+- JSON textarea and file upload; validation (`normalizeRoot`, `validateNode`): the root must be a folder and files must have a `size`.
+- **Sample structures** section: cards with a title and a preview of the first lines of JSON; clicking a card loads that sample and navigates to `/tree`.
+- All copy and styles depend on `theme` and `lang` (i18n).
 
-#### Drzewo i wyszukiwanie
+#### Tree and search
 
-- **TreeView**: rozwijanie/zwijanie folderów, linki do `/tree/<ścieżka-bez-roota>` (np. `/tree/src/components/Button.tsx`). Style zależne od `theme`.
-- **SearchPanel**: wyszukiwanie po nazwie w całym drzewie (case-insensitive), wyniki z pełną ścieżką; linki do `/tree/<pełna-ścieżka>`. Teksty i tła dopasowane do dark/light.
+- **TreeView**: expanding and collapsing folders, links to `/tree/<path-without-root>` (e.g. `/tree/src/components/Button.tsx`). Styles depend on `theme`.
+- **SearchPanel**: case-insensitive search by name across the whole tree, results with the full path; links to `/tree/<full-path>`. Copy and backgrounds adapt to dark/light.
 
-#### Szczegóły węzła (NodeDetailsPage)
+#### Node details (NodeDetailsPage)
 
-- Ścieżka z URL: `params['*']` (React Router v6 splat), dzielona na segmenty i przekazywana do `findNodeByPath(segments)`.
-- **findNodeByPath** (`TreeContext`): czyści puste segmenty, opcjonalnie pomija pierwszy segment jeśli równy nazwie roota; schodzi po drzewie i zwraca `{ node, fullPath }`.
-- **Plik**: nazwa, rozmiar (B / KB / MB / GB przez `formatSize`), typ, pełna ścieżka.
-- **Folder**: nazwa, liczba bezpośrednich dzieci, **całkowity rozmiar plików w poddrzewie** (suma rekurencyjna), **liczba plików w poddrzewie**, pełna ścieżka, lista dzieci z linkami. Rozmiar folderu liczy lokalna funkcja `summarizeFolder(folder)` (iteracyjny DFS po plikach), nie kontekst - aby uniknąć problemów z przeliczaniem.
+- The path comes from the URL: `params['*']` (React Router v6 splat), split into segments and passed to `findNodeByPath(segments)`.
+- **findNodeByPath** (`TreeContext`): removes empty segments, optionally skips the first segment if it equals the root name, walks down the tree and returns `{ node, fullPath }`.
+- **File**: name, size (B / KB / MB / GB via `formatSize`), type, full path.
+- **Folder**: name, number of direct children, **total size of files in the subtree** (recursive sum), **number of files in the subtree**, full path and a list of children with links. Folder size is computed by a local `summarizeFolder(folder)` function (iterative DFS over files) rather than the context, to avoid recalculation issues.
 
-#### Stylowanie i motywy
+#### Styling and themes
 
-- **Tailwind**: `index.css` z `@import 'tailwindcss'`; klasy utility w komponentach. `data-theme="dark"|"light"` na `document.documentElement` (ustawiane w `UiProvider`).
-- Wszystkie karty, przyciski, inputy, drzewo, wyszukiwarka i szczegóły węzła mają warianty klas dla `theme === 'dark'` i `theme === 'light'`, żeby teksty i tła były czytelne w obu trybach.
+- **Tailwind**: `index.css` with `@import 'tailwindcss'`; utility classes in components. `data-theme="dark"|"light"` on `document.documentElement` (set in `UiProvider`).
+- All cards, buttons, inputs, the tree, search and node details have class variants for `theme === 'dark'` and `theme === 'light'`, so text and backgrounds stay readable in both modes.
 
-#### Pliki konfiguracyjne
+#### Configuration files
 
 - `tailwind.config.ts`, `postcss.config.cjs` (Tailwind + autoprefixer).
-- `.prettierrc`, `.prettierignore`, skrypt `format` w `package.json`.
-- `vercel.json` - build i katalog wyjściowy pod Vercel.
+- `.prettierrc`, `.prettierignore`, `format` script in `package.json`.
+- `vercel.json`: build and output directory for Vercel.
 
 ---
 
-### Co zrobiłbym przy większej ilości czasu
+### What I would do with more time
 
-- Walidacja JSON (np. zod) z czytelnymi błędami.
-- Ikony dla typów plików/folderów, animacje rozwijania, podświetlanie bieżącego węzła w drzewie.
-- Filtry w wyszukiwarce (tylko pliki/foldery, rozmiar).
-- Testy jednostkowe (walidacja, `findNodeByPath`, `formatSize`, `summarizeFolder`) i e2e (Playwright/Cypress).
-- Memoizacja / lazy-loading dla bardzo dużych drzew.
+- JSON validation (e.g. with Zod) with readable errors.
+- Icons for file and folder types, expand animations, highlighting the current node in the tree.
+- Search filters (files or folders only, size).
+- Unit tests (validation, `findNodeByPath`, `formatSize`, `summarizeFolder`) and e2e tests (Playwright/Cypress).
+- Memoization and lazy loading for very large trees.
 
-### Znane ograniczenia
+### Known limitations
 
-- Nazwy węzłów powinny być unikalne w ramach jednego folderu (duplikaty utrudniają jednoznaczną ścieżkę).
-- Brak limitu rozmiaru JSON - bardzo duże drzewa mogą spowalniać przeglądarkę.
-- Persistance tylko w `localStorage` tej samej przeglądarki.
+- Node names should be unique within a folder (duplicates make paths ambiguous).
+- No limit on JSON size; very large trees can slow down the browser.
+- Persistence only in `localStorage` of the same browser.
